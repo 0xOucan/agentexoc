@@ -27,6 +27,8 @@ import { createPublicClient, http } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from "viem/accounts";
 import { createWalletClient } from "viem";
+import { actionProviders } from './action-providers';
+import { wethActionProvider as customWethActionProvider } from './action-providers/weth';
 
 dotenv.config();
 
@@ -62,12 +64,12 @@ function validateEnvironment(): void {
 
   // Validate network IDs
   const validNetworks = {
-    NETWORK_ID: ["base-sepolia"],
-    NETWORK_ID_2: ["base-mainnet", "base"] // Allow both forms
+    NETWORK_ID: ["base-sepolia", "base-mainnet", "base"], // Allow mainnet too
+    NETWORK_ID_2: ["base-mainnet", "base"]
   };
 
   if (!validNetworks.NETWORK_ID.includes(process.env.NETWORK_ID!)) {
-    console.error(`Error: NETWORK_ID must be: base-sepolia`);
+    console.error(`Error: NETWORK_ID must be one of: ${validNetworks.NETWORK_ID.join(", ")}`);
     process.exit(1);
   }
 
@@ -77,8 +79,8 @@ function validateEnvironment(): void {
   }
 
   console.log("Environment validated successfully");
-  console.log(`Primary Network (Testnet): ${process.env.NETWORK_ID}`);
-  console.log(`Secondary Network (Mainnet): ${process.env.NETWORK_ID_2}`);
+  console.log(`Network: ${process.env.NETWORK_ID}`);
+  console.log(`Secondary Network: ${process.env.NETWORK_ID_2}`);
 }
 
 // Add this right after imports and before any other code
@@ -88,57 +90,28 @@ validateEnvironment();
 console.log("Environment validated successfully");
 console.log("Network ID:", process.env.NETWORK_ID || "base-sepolia");
 
-async function selectNetwork(): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  console.log("\nSelect network:");
-  console.log("1. Base Sepolia (Testnet)");
-  console.log("2. Base (Mainnet)");
-
-  const answer = await new Promise<string>((resolve) => {
-    rl.question("Enter your choice (1 or 2): ", resolve);
-  });
-  
-  rl.close();
-
-  switch (answer.trim()) {
-    case "1":
-      return "base-sepolia";
-    case "2":
-      return "base-mainnet";
-    default:
-      console.log("Invalid choice, defaulting to Base Sepolia");
-      return "base-sepolia";
-  }
-}
-
 /**
  * Initialize the agent with CDP Agentkit
  *
  * @returns Agent executor and config
  */
-async function initializeAgent() {
+export async function initializeAgent() {
   try {
     console.log("Initializing agent...");
 
-    const selectedNetwork = await selectNetwork();
-    console.log(`Selected network: ${selectedNetwork}`);
+    // Force mainnet for WETH operations
+    const networkId = "base-mainnet"; // Always use mainnet
+    console.log(`Selected network: ${networkId}`);
 
     const privateKey = process.env.WALLET_PRIVATE_KEY;
-
     if (!privateKey) {
       throw new Error("Wallet private key not found in environment variables");
     }
 
-    const selectedChain = selectedNetwork === "base-mainnet" ? base : baseSepolia;
-
     // Create Viem account and client
     const account = privateKeyToAccount(privateKey as `0x${string}`);
     
-    const transport = http(selectedChain.rpcUrls.default.http[0], {
+    const transport = http(base.rpcUrls.default.http[0], { // Always use base mainnet
       batch: true,
       fetchOptions: {},
       retryCount: 3,
@@ -148,7 +121,7 @@ async function initializeAgent() {
 
     const client = createWalletClient({
       account,
-      chain: selectedChain,
+      chain: base, // Always use base mainnet
       transport,
     });
 
@@ -157,17 +130,17 @@ async function initializeAgent() {
 
     // Initialize LLM
     const llm = new ChatOpenAI({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       temperature: 0,
     });
 
     console.log("LLM initialized");
 
-    // Initialize AgentKit with only Xocolatl for now
+    // Initialize AgentKit
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
-        wethActionProvider(),
+        customWethActionProvider(), // Our WETH provider
         pythActionProvider(),
         walletActionProvider(),
         erc20ActionProvider(),
@@ -190,7 +163,7 @@ async function initializeAgent() {
         You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
         empowered to interact onchain using your tools. 
         
-        Current Network: ${selectedNetwork === "base-mainnet" ? "Base Mainnet" : "Base Sepolia Testnet"}
+        Current Network: ${networkId === "base-mainnet" ? "Base Mainnet" : "Base Sepolia Testnet"}
         
         Available Protocols:
 
@@ -243,12 +216,12 @@ async function initializeAgent() {
         - "supply 100 XOC to Alux protocol"
         - "withdraw 50 XOC from Alux protocol"
 
-        WETH Operations:
-        - "approve 0.1 WETH for Alux protocol"
-        - "supply 0.1 WETH as collateral to Alux"
-        - "borrow 50 XOC from Alux with variable rate"
-        - "repay 50 XOC to Alux with variable rate"
-        - "withdraw 0.1 WETH from Alux protocol"
+        WETH Operations (Base Mainnet):
+        - Wrap ETH to WETH: "wrap 0.0001 eth to weth"
+        - Unwrap WETH to ETH: "unwrap 0.0001 weth to eth"
+        - Check WETH balance: "check weth balance"
+
+        Note: WETH operations are always performed on Base Mainnet.
 
         Get the wallet details first to see what network you're on and what tokens are available.
       `,

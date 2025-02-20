@@ -1,103 +1,156 @@
-# AgentKit Multi-Protocol Chatbot
+# AgentKit Multi-Protocol DeFi Chatbot
 
-This chatbot demonstrates integration with multiple DeFi protocols across Base networks:
+An AI-powered chatbot for interacting with multiple DeFi protocols on Base networks. Supports protocol interactions, wallet management, and automated demos.
 
-## Supported Protocols
+## Features
 
-### Xocolatl Protocol (Base Mainnet)
-- Mexican Peso Stablecoin (XOC)
-- Collateral types: WETH, CBETH
-- LTV: 80%, Liquidation threshold: 85%
-- Features:
-  - Deposit/withdraw collateral
-  - Mint/burn XOC
-  - Transfer tokens
-  - Monitor positions
+### Protocol Support
+- **Xocolatl Protocol (Base Mainnet)**
+  - XOC stablecoin operations
+  - WETH/CBETH collateral management
   - Integration with Alux lending pool
-    - Supply WETH as collateral
-    - Borrow XOC with variable/stable rate
-    - Repay XOC loans
-    - Withdraw collateral
+  - Position monitoring
 
-### BOBC Protocol (Base Sepolia)
-- Bolivian Stablecoin (BOBC)
-- Collateral type: WETH
-- Fixed rate: 1 USD = 7 BOB
-- Minimum collateralization: 200%
-- Features:
-  - Claim WETH from faucet
-  - Deposit/withdraw collateral
-  - Mint/burn BOBC
-  - Monitor health factor
-  - Liquidate positions
+- **BOBC Protocol (Base Sepolia)**
+  - BOBC stablecoin operations
+  - WETH collateral management
+  - Faucet integration
+  - Health factor monitoring
 
-## Operating Modes
+### Core Functionality
+- Interactive chat interface
+- Automated demo sequences
+- Transaction management
+- Balance checking
+- Network validation
+- Error handling
 
-The chatbot supports three operating modes:
+## Quick Start
 
-1. **Chat Mode**: Interactive command-line interface for direct user interaction
-2. **Autonomous Mode**: Bot operates independently, executing transactions at set intervals
-3. **Telegram Mode**: Interface through Telegram messenger
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/agentkit-dapp.git
+cd agentkit-dapp
+```
 
-## Network Support
+2. Install dependencies:
+```bash
+npm install
+```
 
-- Base Mainnet
-- Base Sepolia (Testnet)
-- Network selection at startup
-- Automatic network validation before transactions
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+```
 
-## Core Features
+4. Start the development server:
+```bash
+npm start
+```
 
-### Token Operations
-- Check token balances
-- Transfer tokens
-- Approve token spending
-- Wrap/unwrap ETH to WETH
+## Project Structure
 
-### Lending Operations
-- Supply collateral
-- Borrow assets
-- Repay loans
-- Withdraw collateral
-- Monitor positions
-- View collateralization ratios
+```
+├── client/                 # Frontend React application
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   └── App.tsx       # Main application component
+│   └── public/           # Static assets
+├── server/                # Backend Node.js server
+│   └── src/
+│       ├── action-providers/  # Protocol integrations
+│       ├── scripts/          # Utility scripts
+│       └── server.ts        # Express server
+```
 
-### Safety Features
-- Network validation before transactions
-- Balance and allowance checks
-- Collateralization ratio monitoring
-- Detailed error messages
-- Transaction confirmation waiting
-- Custom error handling for common scenarios
+## Configuration
 
-## Error Handling
+### Environment Setup
 
-The chatbot handles various error scenarios:
-- Insufficient balances
-- Insufficient allowances
-- Undercollateralized positions
-- Network mismatches
-- Failed transactions
-- Invalid input validation
+The project uses a three-tier environment configuration:
+
+1. Root level (.env):
+```bash
+cp .env.example .env
+```
+
+2. Client level (client/.env):
+```bash
+cp client/.env.example client/.env
+```
+
+3. Server level (server/.env):
+```bash
+cp server/.env.example server/.env
+```
+
+Required environment variables:
+
+Root level:
+- `OPENAI_API_KEY`: OpenAI API key
+- `NETWORK_ID`: Primary network ID
+- `NETWORK_ID_2`: Secondary network ID
+- `WALLET_PRIVATE_KEY`: Wallet private key
+
+Client level:
+- `REACT_APP_API_URL`: Backend API URL
+- `REACT_APP_BASE_EXPLORER_URL`: Block explorer URL
+
+Server level:
+- `PORT`: Server port
+- `NODE_ENV`: Environment (development/production)
+- `TELEGRAM_BOT_TOKEN`: (Optional) For Telegram integration
+
+## Available Scripts
+
+- `npm start`: Start both client and server
+- `npm run build`: Build both client and server
+- `npm run demo`: Run the demo sequence
+- `npm test`: Run tests
 
 ## Development
 
-To add new features or modify existing ones:
-1. Update the relevant action provider in `src/action-providers/`
-2. Add new schemas if needed
-3. Update the constants and error handlers
-4. Test thoroughly on testnet first
+### Adding New Features
+1. Create new action provider in `server/src/action-providers/`
+2. Add necessary schemas and constants
+3. Update the agent configuration
+4. Test thoroughly on testnet
 
-## Environment Setup
+### Code Style
+- TypeScript for type safety
+- ESLint + Prettier for code formatting
+- React for frontend components
+- Express for backend API
 
-Required environment variables:
-```
-OPENAI_API_KEY=your_openai_api_key_here
-NETWORK_ID=your_network_id_here
-NETWORK_ID_2=your_secondary_network_id_here
-WALLET_PRIVATE_KEY=your_wallet_private_key_here
-```
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details
+
+## Security
+
+- Never commit sensitive credentials
+- Use environment variables for secrets
+- Validate all user inputs
+- Monitor transaction status
+- Implement proper error handling
+
+## Security Notes
+
+- Never commit .env files to version control
+- Keep different environment configurations separate
+- Use .env.example files as templates
+- Regularly rotate API keys and credentials
+- Monitor environment variable usage
+
+## Support
+
+For support, please open an issue in the repository or contact the maintainers.
