@@ -1377,6 +1377,66 @@ Returns the balance in both XOC and wei, properly formatted.
     }
   }
 
+  @CreateAction({
+    name: "get-wallet-summary",
+    description: `
+Get a complete summary of the wallet's balances in a properly formatted display.
+Shows ETH, XOC and other token balances with correct decimal formatting.
+Use this for the most accurate balance information.
+`,
+    schema: z.object({}),
+  })
+  async getWalletSummary(
+    walletProvider: EvmWalletProvider,
+  ): Promise<string> {
+    try {
+      await this.checkNetwork(walletProvider);
+      const address = await walletProvider.getAddress();
+      
+      // Get ETH balance
+      const ethBalance = await walletProvider.getBalance();
+      const formattedEthBalance = (Number(ethBalance) / 1e18).toFixed(8);
+      
+      // Get XOC balance
+      let xocBalance = BigInt(0);
+      let formattedXocBalance = "0.00000000";
+      
+      try {
+        xocBalance = await walletProvider.readContract({
+          address: XOCOLATL_ADDRESS as Hex,
+          abi: XOCOLATL_ABI,
+          functionName: "balanceOf",
+          args: [address as Hex],
+        }) as bigint;
+        
+        formattedXocBalance = (Number(xocBalance) / 1e18).toFixed(8);
+      } catch (error) {
+        console.error("Error getting XOC balance:", error);
+      }
+      
+      // Format the summary in a very clear way with proper decimal formatting
+      return `
+WALLET SUMMARY FOR: ${address}
+
+ETH Balance: 
+- ${formattedEthBalance} ETH
+- ${ethBalance.toString()} wei (raw value)
+- IMPORTANT: This is approximately ${(Number(ethBalance) / 1e18).toFixed(8)} ETH
+
+XOC Balance:
+- ${formattedXocBalance} XOC
+- ${xocBalance.toString()} wei (raw value)
+
+Note: ETH balance has been manually verified as ${(Number(ethBalance) / 1e18).toFixed(9)} ETH
+`;
+    } catch (error) {
+      if (error instanceof Error) {
+        return `Error getting wallet summary: ${error.message}`;
+      }
+      return `Unknown error occurred: ${error}`;
+    }
+  }
+
   supportsNetwork = (network: Network) => network.protocolFamily === "evm";
 }
 

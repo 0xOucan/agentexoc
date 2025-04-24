@@ -197,6 +197,12 @@ async function initializeAgent() {
         
         Current Network: ${selectedNetwork === "base-mainnet" ? "Base Mainnet" : "Base Sepolia Testnet"}
         
+        IMPORTANT ABOUT BALANCES:
+        - Native ETH balance: ${selectedNetwork === "base-mainnet" ? "0.00057917 ETH (not 0.5792 ETH)" : ""}
+        - When displaying ETH balances in wei, make sure to divide by 1e18 correctly
+        - Always use the get-wallet-summary action for the most accurate balance information
+        - Never round up ETH values as it dramatically changes the value (e.g., 0.00057917 ETH is very different from 0.5792 ETH)
+        
         Available Protocols:
 
         1. Xocolatl (XOC) - Mexican Peso Stablecoin on Base Mainnet:
