@@ -5,7 +5,7 @@ import {
   CreateAction,
   EvmWalletProvider,
 } from "@coinbase/agentkit";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, formatEther } from "viem";
 import type { Hex } from "viem";
 import "reflect-metadata";
 import {
@@ -42,6 +42,7 @@ import {
   HOUSE_OF_RESERVE_CBETH,
   ALUX_LENDING_POOL,
   ALUX_LENDING_POOL_ABI,
+  XOC_ABI,
 } from "./constants";
 import { 
   XocolatlError, 
@@ -83,7 +84,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: XOCOLATL_ADDRESS as Hex,
       abi: XOCOLATL_ABI,
       functionName: "balanceOf",
-      args: [address],
+      args: [address as Hex],
     }) as bigint;
 
     if (balance < BigInt(amount)) {
@@ -99,9 +100,9 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
     const address = await walletProvider.getAddress();
     const allowance = await walletProvider.readContract({
       address: XOCOLATL_ADDRESS as Hex,
-      abi: XOCOLATL_ABI,
+      abi: XOC_ABI,
       functionName: "allowance",
-      args: [address, spender as Hex],
+      args: [address as Hex, spender as Hex],
     }) as bigint;
 
     if (allowance < BigInt(amount)) {
@@ -115,7 +116,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: WETH_ADDRESS as Hex,
       abi: WETH_ABI,
       functionName: "balanceOf",
-      args: [address],
+      args: [address as Hex],
     }) as bigint;
 
     if (balance < BigInt(amount)) {
@@ -136,7 +137,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: WETH_ADDRESS as Hex,
       abi: WETH_ABI,
       functionName: "allowance",
-      args: [address, spender as Hex],
+      args: [address as Hex, spender as Hex],
     }) as bigint;
 
     if (allowance < BigInt(amount)) {
@@ -153,7 +154,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: CBETH_ADDRESS as Hex,
       abi: CBETH_ABI,
       functionName: "balanceOf",
-      args: [address],
+      args: [address as Hex],
     }) as bigint;
 
     if (balance < BigInt(amount)) {
@@ -174,7 +175,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: CBETH_ADDRESS as Hex,
       abi: CBETH_ABI,
       functionName: "allowance",
-      args: [address, spender as Hex],
+      args: [address as Hex, spender as Hex],
     }) as bigint;
 
     if (allowance < BigInt(amount)) {
@@ -191,7 +192,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: HOUSE_OF_RESERVE_ADDRESS as Hex,
       abi: HOUSE_OF_RESERVE_ABI,
       functionName: "getCollateralBalance",
-      args: [address],
+      args: [address as Hex],
     }) as bigint;
     return balance;
   }
@@ -268,7 +269,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: params.address as Hex,
       abi: collateralType === 'WETH' ? WETH_ABI : CBETH_ABI,
       functionName: "allowance",
-      args: [address, params.houseOfReserve as Hex],
+      args: [address as Hex, params.houseOfReserve as Hex],
     }) as bigint;
 
     // Approve if needed
@@ -314,7 +315,7 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
       address: WETH_ADDRESS as Hex,
       abi: WETH_ABI,
       functionName: "balanceOf",
-      args: [address],
+      args: [address as Hex],
     }) as bigint;
   }
 
@@ -328,9 +329,9 @@ export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
     // Check current allowance
     const allowance = await walletProvider.readContract({
       address: XOCOLATL_ADDRESS as Hex,
-      abi: XOCOLATL_ABI,
+      abi: XOC_ABI,
       functionName: "allowance",
-      args: [address, spender as Hex],
+      args: [address as Hex, spender as Hex],
     }) as bigint;
 
     // If allowance is insufficient, approve
@@ -444,7 +445,7 @@ This tool will check the XOC token balance of an address.
 It takes:
 - address: The address to check the balance for
 
-Returns the balance in wei.
+Returns the balance in both XOC and wei, properly formatted.
 `,
     schema: GetXocBalanceSchema,
   })
@@ -460,7 +461,11 @@ Returns the balance in wei.
         args: [args.address as Hex],
       }) as bigint;
 
-      return `XOC Balance: ${balance.toString()}`;
+      // Format with proper precision
+      const manuallyFormatted = Number(balance) / 1e18;
+      const formattedXoc = manuallyFormatted.toFixed(8);
+
+      return `XOC Balance for ${args.address}: ${formattedXoc} XOC (${balance.toString()} wei)`;
     } catch (error) {
       return `Error getting XOC balance: ${error}`;
     }
@@ -966,7 +971,7 @@ Example: To approve 0.0001 WETH, use amount: "100000000000000"
         address: WETH_ADDRESS as Hex,
         abi: WETH_ABI,
         functionName: "balanceOf",
-        args: [address],
+        args: [address as Hex],
       }) as bigint;
 
       if (balance < BigInt(args.amount)) {
@@ -1299,6 +1304,74 @@ amount: "1000000000000000000", interestRateMode: "2"
     } catch (error) {
       if (error instanceof Error) {
         return `Transaction failed: ${error.message}`;
+      }
+      return `Unknown error occurred: ${error}`;
+    }
+  }
+
+  @CreateAction({
+    name: "get-eth-balance",
+    description: `
+Get the native ETH balance of the connected wallet address on Base.
+Returns the balance in both wei and ETH formatted properly.
+`,
+    schema: z.object({}),
+  })
+  async getEthBalance(
+    walletProvider: EvmWalletProvider,
+  ): Promise<string> {
+    try {
+      await this.checkNetwork(walletProvider);
+      
+      // Get ETH balance directly from the provider (no parameters needed)
+      const balance = await walletProvider.getBalance();
+      const address = await walletProvider.getAddress();
+      
+      // Format the balance using viem's formatEther for proper decimal handling
+      const balanceAsEther = formatEther(balance);
+      
+      // Double-check the calculation manually to ensure proper formatting
+      const manuallyFormatted = Number(balance) / 1e18;
+      const formattedEth = manuallyFormatted.toFixed(8);
+      
+      return `ETH Balance for ${address}: ${formattedEth} ETH (${balance.toString()} wei)`;
+    } catch (error) {
+      if (error instanceof Error) {
+        return `Error getting ETH balance: ${error.message}`;
+      }
+      return `Unknown error occurred: ${error}`;
+    }
+  }
+
+  @CreateAction({
+    name: "format-xoc-balance",
+    description: `
+Format an XOC balance in a human-readable way.
+Parameters:
+- balance: XOC balance in wei
+
+Returns the balance in both XOC and wei, properly formatted.
+`,
+    schema: z.object({
+      balance: z.string().describe("XOC balance in wei")
+    }),
+  })
+  async formatXocBalance(
+    walletProvider: EvmWalletProvider,
+    args: { balance: string },
+  ): Promise<string> {
+    try {
+      // Format the balance using viem's formatEther (XOC has same decimals as ETH)
+      const balanceAsBigInt = BigInt(args.balance);
+      
+      // Format with proper precision
+      const manuallyFormatted = Number(balanceAsBigInt) / 1e18;
+      const formattedXoc = manuallyFormatted.toFixed(8);
+      
+      return `XOC Balance: ${formattedXoc} XOC (${args.balance} wei)`;
+    } catch (error) {
+      if (error instanceof Error) {
+        return `Error formatting XOC balance: ${error.message}`;
       }
       return `Unknown error occurred: ${error}`;
     }

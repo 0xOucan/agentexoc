@@ -155,9 +155,14 @@ async function initializeAgent() {
     // Create Viem wallet provider
     const walletProvider = new ViemWalletProvider(client);
 
+    // Debug wallet balance
+    const ethBalance = await walletProvider.getBalance();
+    console.log(`DEBUG: Raw ETH balance in wei: ${ethBalance.toString()}`);
+    console.log(`DEBUG: Formatted ETH balance: ${Number(ethBalance) / 1e18}`);
+
     // Initialize LLM
     const llm = new ChatOpenAI({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       temperature: 0,
     });
 
